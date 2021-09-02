@@ -626,6 +626,96 @@ func TestChangeAuthnFromAccountRecovery(t *testing.T) {
 	}
 }
 
+func TestGetAccountRecoveryToken(t *testing.T) {
+	t.Parallel()
+	srv := newTestTLSServer(t)
+
+	cases := []struct {
+		name     string
+		isExpErr bool
+		req      CreateUserTokenRequest
+	}{
+		{
+			name:     "invalid recovery token type",
+			isExpErr: true,
+			req: CreateUserTokenRequest{
+				Name: "does-not-matter",
+				TTL:  5 * time.Minute,
+				Type: UserTokenTypeResetPassword,
+			},
+		},
+		{
+			name: "recovery start token type",
+			req: CreateUserTokenRequest{
+				Name: "does-not-matter",
+				TTL:  5 * time.Minute,
+				Type: UserTokenTypeRecoveryStart,
+			},
+		},
+		{
+			name: "recovery approve token type",
+			req: CreateUserTokenRequest{
+				Name: "does-not-matter",
+				TTL:  5 * time.Minute,
+				Type: UserTokenTypeRecoveryApproved,
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create and insert a token.
+			token, err := srv.Auth().newUserToken(c.req)
+			require.NoError(t, err)
+			_, err = srv.Auth().Identity.CreateUserToken(context.Background(), token)
+			require.NoError(t, err)
+
+			retToken, err := srv.Auth().GetAccountRecoveryToken(context.Background(), &proto.GetAccountRecoveryTokenRequest{
+				RecoveryTokenID: token.GetName(),
+			})
+
+			switch {
+			case c.isExpErr:
+				require.True(t, trace.IsAccessDenied(err))
+			default:
+				require.NoError(t, err)
+				require.Equal(t, c.req.Type, retToken.GetSubKind())
+			}
+		})
+	}
+}
+
+func TestCreateAccountRecoveryCodes(t *testing.T) {
+	srv := newTestTLSServer(t)
+	ctx := context.Background()
+
+	defaultModules := modules.GetModules()
+	defer modules.SetModules(defaultModules)
+	modules.SetModules(&testWithCloudModules{})
+
+	// Enable second factors.
+	ap, err := types.NewAuthPreference(types.AuthPreferenceSpecV2{
+		Type:         constants.Local,
+		SecondFactor: constants.SecondFactorOTP,
+	})
+	require.NoError(t, err)
+
+	err = srv.Auth().SetAuthPreference(ctx, ap)
+	require.NoError(t, err)
+
+	// Acquire an approved token.
+	approvedToken, err := srv.Auth().createRecoveryToken(ctx, "name", UserTokenTypeRecoveryApproved, types.UserTokenUsage_USER_TOKEN_RECOVER_PASSWORD)
+	require.NoError(t, err)
+
+	res, err := srv.Auth().CreateAccountRecoveryCodes(ctx, &proto.CreateAccountRecoveryCodesRequest{
+		RecoveryApprovedTokenID: approvedToken.GetName(),
+	})
+	require.NoError(t, err)
+	require.Len(t, res.GetRecoveryCodes(), 3)
+}
+
 func triggerLoginLock(t *testing.T, srv *Server, username string) {
 	for i := 1; i <= defaults.MaxLoginAttempts; i++ {
 		_, err := srv.authenticateUser(context.Background(), AuthenticateUserRequest{

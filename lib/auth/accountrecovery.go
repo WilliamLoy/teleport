@@ -448,6 +448,55 @@ func (s *Server) ChangeAuthnFromAccountRecovery(ctx context.Context, req *proto.
 	return nil
 }
 
+// CreateAccountRecoveryCodes implements AuthService.CreateAccountRecoveryCodes.
+func (s *Server) CreateAccountRecoveryCodes(ctx context.Context, req *proto.CreateAccountRecoveryCodesRequest) (*proto.CreateAccountRecoveryCodesResponse, error) {
+	errMessage := "unable to create new recovery codes, please contact your system administrator"
+
+	if err := s.isAccountRecoveryAllowed(ctx); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	approvedToken, err := s.GetUserToken(ctx, req.GetRecoveryApprovedTokenID())
+	if err != nil {
+		log.Error(trace.DebugReport(err))
+		return nil, trace.AccessDenied(errMessage)
+	}
+
+	if err := s.verifyUserToken(approvedToken, UserTokenTypeRecoveryApproved); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	codes, err := s.generateAndUpsertRecoveryCodes(ctx, approvedToken.GetUser())
+	if err != nil {
+		log.Error(trace.DebugReport(err))
+		return nil, trace.AccessDenied(errMessage)
+	}
+
+	// Delete all tokens for this user, as this is the end of recovery.
+	if err := s.deleteUserTokens(ctx, approvedToken.GetUser()); err != nil {
+		log.Error(trace.DebugReport(err))
+	}
+
+	return &proto.CreateAccountRecoveryCodesResponse{
+		RecoveryCodes: codes,
+	}, nil
+}
+
+// GetAccountRecoveryToken implements AuthService.GetAccountRecoveryToken.
+func (s *Server) GetAccountRecoveryToken(ctx context.Context, req *proto.GetAccountRecoveryTokenRequest) (types.UserToken, error) {
+	token, err := s.GetUserToken(ctx, req.GetRecoveryTokenID())
+	if err != nil {
+		log.Error(trace.DebugReport(err))
+		return nil, trace.AccessDenied("access denied")
+	}
+
+	if err := s.verifyUserToken(token, UserTokenTypeRecoveryStart, UserTokenTypeRecoveryApproved); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return token, nil
+}
+
 func (s *Server) generateAndUpsertRecoveryCodes(ctx context.Context, username string) ([]string, error) {
 	codes, err := generateRecoveryCodes()
 	if err != nil {
