@@ -1085,6 +1085,31 @@ message ChangeAuthnFromAccountRecoveryRequest {
     }
 }
 
+// CreateAccountRecoveryCodesRequest is a request to create new set of recovery codes for a user,
+// replacing and invalidating any previously existing codes. Recovery codes can only be given to
+// users who meet the following requirements:
+//  - cloud feature is enabled
+//  - username is in valid email format
+message CreateAccountRecoveryCodesRequest {
+    // RecoveryApprovedTokenID is the ID of a recovery approved token that's required to verify this
+    // request. Approved tokens are obtained with RPC ApproveAccountRecovery.
+    string RecoveryApprovedTokenID = 1 [ (gogoproto.jsontag) = "recovery_approved_token_id" ];
+}
+
+// CreateAccountRecoveryCodesResponse is the response to CreateAccountRecoveryCodesRequest.
+message CreateAccountRecoveryCodesResponse {
+    // RecoveryCodes are user's new account recovery codes. Any previous codes are invalidated by
+    // the replacement of new codes.
+    repeated string RecoveryCodes = 1 [ (gogoproto.jsontag) = "recovery_codes" ];
+}
+
+// GetAccountRecoveryTokenRequest is a request to return a user token resource after verifying that
+// the token in the request is not expired and is of the recovery kind.
+message GetAccountRecoveryTokenRequest {
+    // RecoveryTokenID is the ID of a recovery token to verify.
+    string RecoveryTokenID = 1 [ (gogoproto.jsontag) = "recovery_token_id" ];
+}
+
 // AuthService is authentication/authorization service implementation
 service AuthService {
     // SendKeepAlives allows node to send a stream of keep alive requests
@@ -1453,7 +1478,6 @@ service AuthService {
     //
     // Recovery approved tokens last RecoveryApprovedTokenTTL.
     rpc ApproveAccountRecovery(ApproveAccountRecoveryRequest) returns (types.UserTokenV3);
-
     // ChangeAuthnFromAccountRecovery (exclusive to cloud users) is the third step in account
     // recovery, after RPC's StartAccountRecovery and ApproveAccountRecovery. This step sets a new
     // password or adds a new mfa device, allowing the user to regain access to their account with
@@ -1461,4 +1485,15 @@ service AuthService {
     // removed so the user can login immediately after they complete the recovery process.
     rpc ChangeAuthnFromAccountRecovery(ChangeAuthnFromAccountRecoveryRequest)
         returns (google.protobuf.Empty);
+    // CreateAccountRecoveryCodes (exclusive to cloud users) creates new set of recovery codes for a
+    // user, replacing and invalidating any previously owned codes. Users can only get recovery
+    // codes if their username is in a valid email format.
+    rpc CreateAccountRecoveryCodes(CreateAccountRecoveryCodesRequest)
+        returns (CreateAccountRecoveryCodesResponse);
+    // GetAccountRecoveryToken (exclusive to cloud users) returns a user token resource after
+    // verifying that the token requested has not expired and is of the correct recovery kind.
+    // Besides checking for validity of a token ID, it is also used to get basic information from
+    // the token e.g: username, state of recovery (started or approved) and the type of recovery
+    // requested (password or second factor).
+    rpc GetAccountRecoveryToken(GetAccountRecoveryTokenRequest) returns (types.UserTokenV3);
 }
