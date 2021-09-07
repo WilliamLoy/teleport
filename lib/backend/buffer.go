@@ -174,6 +174,7 @@ func (c *CircularBuffer) Emit(events ...Event) (ok bool) {
 	}
 
 	for i := range events {
+		c.Debugf("Emitting backend event. Type=%v ItemKey=%s ItemValue=%v", events[i].Type, string(events[i].Item.Key), string(events[i].Item.Value))
 		c.emit(events[i])
 	}
 	return true

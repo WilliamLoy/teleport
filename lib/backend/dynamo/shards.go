@@ -248,6 +248,9 @@ func (b *Backend) pollShard(ctx context.Context, streamArn *string, shard *dynam
 				if err != nil {
 					return trace.Wrap(err)
 				}
+
+				b.Debugf("Processed shard event. Type=%v ItemKey=%s ItemValue=%v", events[i].Type, string(events[i].Item.Key), string(events[i].Item.Value))
+
 				events = append(events, *event)
 			}
 			select {

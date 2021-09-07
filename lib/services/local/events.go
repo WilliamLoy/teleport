@@ -170,11 +170,13 @@ func (w *watcher) Error() error {
 }
 
 func (w *watcher) parseEvent(e backend.Event) ([]types.Event, []error) {
+	w.Debugf("Parsing backend event. Type=%v ItemKey=%s ItemValue=%v", e.Type, string(e.Item.Key), string(e.Item.Value))
+
 	if e.Type == types.OpInit {
 		return []types.Event{{Type: e.Type}}, nil
 	}
-	events := []types.Event{}
-	errs := []error{}
+	var events []types.Event
+	var errs []error
 	for _, p := range w.parsers {
 		if p.match(e.Item.Key) {
 			resource, err := p.parse(e)
@@ -184,8 +186,12 @@ func (w *watcher) parseEvent(e backend.Event) ([]types.Event, []error) {
 			}
 			// if resource is nil, then it was well-formed but is being filtered out.
 			if resource == nil {
+				w.Debugf("Skipping backend event due to nil resource. Type=%v ItemKey=%s", e.Type, string(e.Item.Key))
 				continue
 			}
+
+			w.Debugf("Parsed backend event. Type=%v Resource=%v", e.Type, resource)
+
 			events = append(events, types.Event{Type: e.Type, Resource: resource})
 		}
 	}

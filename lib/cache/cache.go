@@ -937,6 +937,11 @@ func (c *Cache) fetchAndWatch(ctx context.Context, retry utils.Retry, timer *tim
 		case <-c.ctx.Done():
 			return trace.ConnectionProblem(c.ctx.Err(), "context is closing")
 		case event := <-watcher.Events():
+			if event.Resource == nil {
+				c.Debugf("received nil resource processing event = %v", event)
+				return trace.Errorf("received nil resource %v", event)
+			}
+
 			// check for expired resources in OpPut events and log them periodically. stale OpPut events
 			// may be an indicator of poor performance, and can lead to confusing and inconsistent state
 			// as the cache may prune items that aught to exist.
@@ -1030,6 +1035,10 @@ func (c *Cache) fetch(ctx context.Context) (apply func(ctx context.Context) erro
 }
 
 func (c *Cache) processEvent(ctx context.Context, event types.Event) error {
+	c.Debugf("processing event. Event=%v", event)
+	defer func() {
+		c.Debugf("completed processing event. Event=%v", event)
+	}()
 	resourceKind := resourceKindFromResource(event.Resource)
 	collection, ok := c.collections[resourceKind]
 	if !ok {
