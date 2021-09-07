@@ -326,6 +326,9 @@ type Config struct {
 	// ALPNSNIListenerEnabled indicates that proxy supports ALPN SNI server where
 	// all proxy services are exposed on single TLS listener (Proxy Web Listener).
 	ALPNSNIListenerEnabled bool
+
+	// CurrentAWSCLIApp stores informant about the latest AWS app that the user logged into.
+	CurrentAWSCLIApp string
 }
 
 // CachePolicy defines cache policy for local clients
@@ -775,6 +778,7 @@ func (c *Config) LoadProfile(profileDir string, proxyName string) error {
 	c.PostgresProxyAddr = cp.PostgresProxyAddr
 	c.MySQLProxyAddr = cp.MySQLProxyAddr
 	c.ALPNSNIListenerEnabled = cp.ALPNSNIListenerEnabled
+	c.CurrentAWSCLIApp = cp.CurrentAWSCLIApp
 
 	c.LocalForwardPorts, err = ParsePortForwardSpec(cp.ForwardedPorts)
 	if err != nil {
@@ -785,7 +789,6 @@ func (c *Config) LoadProfile(profileDir string, proxyName string) error {
 	if err != nil {
 		log.Warnf("Unable to parse dynamic port forwarding in user profile: %v.", err)
 	}
-
 	return nil
 }
 
@@ -808,6 +811,7 @@ func (c *Config) SaveProfile(dir string, makeCurrent bool) error {
 	cp.ForwardedPorts = c.LocalForwardPorts.String()
 	cp.SiteName = c.SiteName
 	cp.ALPNSNIListenerEnabled = c.ALPNSNIListenerEnabled
+	cp.CurrentAWSCLIApp = c.CurrentAWSCLIApp
 
 	if err := cp.SaveToDir(dir, makeCurrent); err != nil {
 		return trace.Wrap(err)

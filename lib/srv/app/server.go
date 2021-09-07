@@ -37,6 +37,7 @@ import (
 	"github.com/gravitational/teleport/lib/labels"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/srv"
+	appaws "github.com/gravitational/teleport/lib/srv/app/aws"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 
@@ -152,6 +153,8 @@ type Server struct {
 	proxyPort string
 
 	cache *sessionCache
+
+	awsSigner *appaws.SigningService
 }
 
 // New returns a new application server.
@@ -161,12 +164,18 @@ func New(ctx context.Context, c *Config) (*Server, error) {
 		return nil, trace.Wrap(err)
 	}
 
+	awsSigner, err := appaws.NewSigningService(appaws.SigningServiceConfig{})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	s := &Server{
 		c: c,
 		log: logrus.WithFields(logrus.Fields{
 			trace.Component: teleport.ComponentApp,
 		}),
-		server: c.Server,
+		server:    c.Server,
+		awsSigner: awsSigner,
 	}
 
 	s.closeContext, s.closeFunc = context.WithCancel(ctx)
@@ -366,6 +375,10 @@ func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 			return trace.Wrap(err)
 		}
 		http.Redirect(w, r, url.SigninURL, http.StatusFound)
+		return nil
+	}
+	if app.IsAWSCLI() {
+		s.awsSigner.Handle(w, r, identity)
 		return nil
 	}
 

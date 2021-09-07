@@ -65,6 +65,8 @@ type LocalProxyConfig struct {
 	SSHHostKeyCallback ssh.HostKeyCallback
 	// SSHTrustedCluster allows to select trusted cluster ssh subsystem request.
 	SSHTrustedCluster string
+	// Certs are the client certificates.
+	Certs []tls.Certificate
 }
 
 // CheckAndSetDefaults verifies the constraints for LocalProxyConfig.
@@ -246,6 +248,7 @@ func (l *LocalProxy) handleDownstreamConnection(ctx context.Context, downstreamC
 		NextProtos:         []string{string(l.cfg.Protocol)},
 		InsecureSkipVerify: l.cfg.InsecureSkipVerify,
 		ServerName:         serverName,
+		Certificates:       l.cfg.Certs,
 	})
 	if err != nil {
 		return trace.Wrap(err)

@@ -361,6 +361,11 @@ func (a *App) IsAWSConsole() bool {
 	return strings.HasPrefix(a.URI, constants.AWSConsoleURL)
 }
 
+// IsAWSCLI returns true if this app configured as AWS CLI access proxy.
+func (a *App) IsAWSCLI() bool {
+	return strings.HasPrefix(a.URI, constants.AWSCLIURL)
+}
+
 // GetAWSAccountID returns value of label containing AWS account ID on this app.
 func (a *App) GetAWSAccountID() string {
 	return a.StaticLabels[constants.AWSAccountIDLabel]
