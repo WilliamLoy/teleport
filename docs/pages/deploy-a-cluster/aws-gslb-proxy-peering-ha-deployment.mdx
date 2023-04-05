@@ -71,14 +71,22 @@ terminate TLS, and must transparently forward the TCP traffic it receives.
 In other words, this must be a Layer 4 load balancer, not a Layer 7 
 (e.g., HTTP) load balancer. 
 
-### Configure the NLBs
+<Admonition
+  type="warning"
+  title="Note"
+>
+We recommend enabling cross-zone load balancing for the Auth and Proxy service NLB configurations to route 
+traffic across multiple zones.Doing this improves resiliency against localized AWS zone outages.
+</Admonition>
+
+### Configure the Proxy Service NLBs
 Configure the load balancer to forward traffic from the following ports on the
 load balancer to the corresponding port on an available Teleport instance. The
 configuration depends on whether you route Proxy Peering GRPC traffic over 
 the public internet:
 
 <Tabs>
-<TabItem label="Public Internet Proxy NLB ports">
+<TabItem label="Public NLB Proxy ports">
 
 | Port | Description |
 | - | - |
@@ -97,8 +105,24 @@ These ports are required:
 </TabItem>
 </Tabs>
 
-We recommend enabling cross-zone load balancing for the Auth and Proxy service NLB configurations to route 
-traffic across multiple zones.Doing this improves resiliency against localized AWS zone outages.
+### Configure the Auth Service NLB
+Configure the load balancer to forward traffic from the following ports on the
+load balancer to the corresponding port on an available Teleport instance.
+
+<Admonition
+  type="warning"
+  title="Note"
+>
+Proxies must have network access to the Auth Service NLB. You can accomplish this
+in the Route53 GSLB architecure using [VPC Peering](https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html) 
+or [Transit Gateways](https://docs.aws.amazon.com/vpc/latest/tgw/what-is-transit-gateway.html).
+</Admonition>
+
+Internal NLB Auth Service ports
+
+| Port | Description |
+| - | - |
+| `3025` | TLS port used by the Auth Service to serve its API to other Nodes in a cluster |
 
 ## Cluster state backend
 
@@ -124,7 +148,7 @@ to create tables.
 
 ## Session recording backend
 
-High-availability Teleport deployments use an object storage service for
+Highly available Teleport deployments use an object storage service for
 persisting session recordings.
 
 In your Teleport configuration (described in the [Configuration](#configuration)
@@ -197,10 +221,10 @@ Example Hosted Zone using AWS Route53 Latency Routing to create GSLB:
 ### Teleport Proxy DNS records for GSLB:
 |Record name|Type|Routing Policy|Region|Value|
 |---|---|---|---|---|
-|```proxy.teleport.example.com```|CNAME|Latency|us-west-1| ```elb.us-west-1.amazonaws.com``` |
-|```*.proxy.teleport.example.com```|CNAME|Latency|us-west-1| ```elb.us-west-1.amazonaws.com``` |
-|```proxy.teleport.example.com```|CNAME|Latency|eu-central-1| ```elb.eu_central-1.amazonaws.com```|
-|```*.proxy.teleport.example.com```|CNAME|Latency|eu-central-1| ```elb.eu_central-1.amazonaws.com```|
+|```teleport.example.com```|CNAME|Latency|us-west-1| ```elb.us-west-1.amazonaws.com``` |
+|```*.teleport.example.com```|CNAME|Latency|us-west-1| ```elb.us-west-1.amazonaws.com``` |
+|```teleport.example.com```|CNAME|Latency|eu-central-1| ```elb.eu_central-1.amazonaws.com```|
+|```*.teleport.example.com```|CNAME|Latency|eu-central-1| ```elb.eu_central-1.amazonaws.com```|
 
 <Admonition title="Required permissions">
 
@@ -212,7 +236,7 @@ manage Route53 DNS records in order to satisfy Let's Encrypt's DNS-01 challenge.
 
 ### Teleport resource agent configuration for GSLB
 To facilitate latency routing, resource agents  must be configured to point ```proxy_server:``` to 
-the GSLB domain configured in Route 53 _not the specific proxy NLB address_.
+the GSLB domain configured in Route53 _not the specific proxy NLB address_.
 
 For example:
 
@@ -226,13 +250,13 @@ teleport:
         enabled: yes
     ...
 ```
-Review the [configuration refrence](https://goteleport.com/docs/reference/config/) page for 
+Review the [configuration reference](https://goteleport.com/docs/reference/config/) page for 
 additional settings.       
 
 ## Configure Proxy Peering
 
 In this deployment architecure, Proxy Peering is used to restrict the number of connections made from 
-resources to proxies in the Teleport Cluster. Full Proxy Peering explination and configuration details
+resources to proxies in the Teleport Cluster. Full Proxy Peering explanation and configuration details
 can be reviewed in the [Proxy Peering RFD](https://github.com/gravitational/teleport/blob/master/rfd/0069-proxy-peering.md).
 
 This guide covers the necessary Proxy Peering settings for deploying an HA Teleport Cluster routing resource
@@ -248,7 +272,7 @@ auth_service:
  tunnel_strategy:
   type: proxy_peering
 ```
-Refrence the [Auth Server configuration](https://goteleport.com/docs/reference/config/#auth-service) reference page 
+Reference the [Auth Server configuration](https://goteleport.com/docs/reference/config/#auth-service) reference page 
 for additional settings.
 
 ### Proxy Service Proxy Peering configuration 
