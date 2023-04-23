@@ -3,10 +3,10 @@ module github.com/gravitational/teleport
 go 1.19
 
 require (
-	cloud.google.com/go/container v1.14.0
+	cloud.google.com/go/container v1.15.0
 	cloud.google.com/go/firestore v1.9.0
 	cloud.google.com/go/iam v0.13.0
-	cloud.google.com/go/kms v1.10.0
+	cloud.google.com/go/kms v1.10.1
 	cloud.google.com/go/storage v1.30.1
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.4.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.2
@@ -133,14 +133,14 @@ require (
 	golang.org/x/crypto v0.7.0 // replaced
 	golang.org/x/exp v0.0.0-20230116083435-1de6713980de
 	golang.org/x/mod v0.9.0
-	golang.org/x/net v0.8.0
-	golang.org/x/oauth2 v0.6.0
+	golang.org/x/net v0.9.0
+	golang.org/x/oauth2 v0.7.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.6.0
-	golang.org/x/term v0.6.0
-	golang.org/x/text v0.8.0
-	google.golang.org/api v0.114.0
-	google.golang.org/genproto v0.0.0-20230327152035-dc694ad2151e
+	golang.org/x/sys v0.7.0
+	golang.org/x/term v0.7.0
+	golang.org/x/text v0.9.0
+	google.golang.org/api v0.119.0
+	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1
 	google.golang.org/grpc v1.54.0
 	google.golang.org/grpc/examples v0.0.0-20221010194801-c67245195065
 	google.golang.org/protobuf v1.30.0
@@ -255,6 +255,7 @@ require (
 	github.com/google/go-tspi v0.2.1-0.20190423175329-115dea689aad // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/renameio/v2 v2.0.0 // indirect
+	github.com/google/s2a-go v0.1.2 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
